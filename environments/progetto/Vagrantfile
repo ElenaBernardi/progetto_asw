@@ -1,0 +1,124 @@
+# 
+# Vagrantfile che prevedere
+# - un nodo broker 
+# - un nodo produttore
+# - un nodo consumatore 
+# 
+# 
+
+
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+    # Configurazioni comuni.
+
+    # Ubuntu 16.04 LTS 64 bit VirtualBox (Bento)
+    config.vm.box = "bento/ubuntu-16.04"
+    # config.vm.box_url = "https://app.vagrantup.com/bento/boxes/ubuntu-16.04"
+
+    # folder per i progetti Asw (/home/asw/projects)
+    config.vm.synced_folder "../../projects/", "/home/asw/projects/", :mount_options => ["dmode=777", "fmode=777"]
+
+    # folder per le risorse condivise per gli ambienti Asw (/home/asw/_shared/resources e /home/asw/_shared/scripts) 
+    config.vm.synced_folder "../_shared/", "/home/asw/_shared", :mount_options => ["dmode=777", "fmode=777"]
+
+    #
+    # Configurazione del nodo "broker", che prevede: 
+    # - Oracle Java SDK 8 
+    # - Zookeeper 3.4.10
+    # - Kafka 1.0.1
+    #
+    config.vm.define "broker" do |node|
+        node.vm.hostname = "broker"    
+        node.vm.network "private_network", ip: "10.11.1.101", virtualbox__intnet: true
+
+        node.vm.provider "virtualbox" do |v| 
+            v.memory = 1024 
+            v.cpus = 1
+        end 
+
+        
+       	# provisioning con bash 
+        node.vm.provision :shell, :inline => 'apt-get update'
+        node.vm.provision :shell, path: "../_shared/scripts/setup-java.sh"
+        node.vm.provision :shell, path: "../_shared/scripts/setup-kafka.sh"
+        node.vm.provision :shell, path:"../_shared/scripts/setup-zookeeper.sh"
+     
+
+        node.vm.provision :shell, :inline => "echo '10.11.1.101 broker' >> /etc/hosts"
+        node.vm.provision :shell, :inline => "echo '10.11.1.201 produttore' >> /etc/hosts"
+        node.vm.provision :shell, :inline => "echo '10.11.1.221 consumatore' >> /etc/hosts"
+
+  
+        # crea un link simbolico alla cartella dei progetti asw nella cartella dell'utente di default 
+        node.vm.provision :shell, :inline => 'ln -s /home/asw/projects projects'
+
+        node.vm.provision :shell, 
+            inline: "echo  'configurazione nodo broker completata'"
+
+    end
+
+    #
+    # Configurazione del nodo "produttore", che prevede: 
+    # - Oracle Java SDK 8 
+    #
+	config.vm.define "produttore" do |node|
+        node.vm.hostname = "produttore"    
+        node.vm.network "private_network", ip: "10.11.1.201", virtualbox__intnet: true
+
+        node.vm.provider "virtualbox" do |v| 
+            v.memory = 1024 
+            v.cpus = 1
+        end 
+ 
+        # provisioning con bash 
+        node.vm.provision :shell, :inline => 'apt-get update'
+        node.vm.provision :shell, path: "../_shared/scripts/setup-java.sh"
+        
+
+        node.vm.provision :shell, :inline => "echo '10.11.1.101 broker' >> /etc/hosts"
+        node.vm.provision :shell, :inline => "echo '10.11.1.201 produttore' >> /etc/hosts"
+        node.vm.provision :shell, :inline => "echo '10.11.1.221 consumatore' >> /etc/hosts"
+
+        # crea un link simbolico alla cartella dei progetti asw nella cartella dell'utente di default 
+        node.vm.provision :shell, :inline => 'ln -s /home/asw/projects projects'
+
+        node.vm.provision :shell, 
+            inline: "echo  'configurazione nodo produttore completata'"
+
+    end
+
+
+ #
+    # Configurazione del nodo "produttore", che prevede: 
+    # - Oracle Java SDK 8 
+    #
+    config.vm.define "consumatore" do |node|
+        node.vm.hostname = "consumatore"    
+        node.vm.network "private_network", ip: "10.11.1.221", virtualbox__intnet: true
+
+        node.vm.provider "virtualbox" do |v| 
+            v.memory = 1024 
+            v.cpus = 1
+        end 
+        
+ 		#provisioning con bash
+        node.vm.provision :shell, :inline => 'apt-get update'
+        node.vm.provision :shell, path: "../_shared/scripts/setup-java.sh"
+        
+
+        node.vm.provision :shell, :inline => "echo '10.11.1.101 broker' >> /etc/hosts"
+        node.vm.provision :shell, :inline => "echo '10.11.1.201 produttore' >> /etc/hosts"
+        node.vm.provision :shell, :inline => "echo '10.11.1.221 consumatore' >> /etc/hosts"
+
+    
+
+        # crea un link simbolico alla cartella dei progetti asw nella cartella dell'utente di default 
+        node.vm.provision :shell, :inline => 'ln -s /home/asw/projects projects'
+
+        node.vm.provision :shell, 
+            inline: "echo  'configurazione nodo consumatore completata'"
+
+    end
+
+end
